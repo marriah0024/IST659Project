@@ -1,0 +1,34 @@
+--Data Question 1: How many orders each week so far? 
+Select DATEADD(Day, -DateDiff(Day, 0, [OrderDate])%7,[OrderDate]) AS [Weekof],
+COUNT (*) AS Count 
+From dbo.CustomerOrder 
+Group By DATEADD(Day, -DateDiff(Day,0,[OrderDate]) %7, [OrderDate]) 
+
+--Data Question 2: Which product is ordered the most?
+Select ProductID, COUNT (ProductID) AS value_occurrence 
+From OrderDetail
+Group By ProductID
+Order By value_occurrence DESC 
+
+Select * from Product where ProductID= 1 
+
+--Data Question 3: What size are most commonly ordered?
+Select DogSize, Count (*) from Customer 
+Group By DogSize
+Order By DogSize asc
+
+--Date Question 4: What is the monthly total? And weekly total?
+SELECT
+DATEPART (m, ShipDate) AS Month,
+Sum(Total) AS Total
+FROM OrderDetail
+Group By DATEPART (m, ShipDate);
+
+SELECT
+DATEPART (wk, ShipDate) AS Week,
+Sum(Total) AS Total
+FROM OrderDetail
+Group By DATEPART (wk, ShipDate);
+
+--Data Question 5: What are the most ordered areas (zip code)?
+Select ShipPostal from Customer
