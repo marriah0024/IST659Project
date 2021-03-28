@@ -1,0 +1,264 @@
+-- drop all database objects in reverse order of their dependencies
+-- including views, stored procedures and tables; note the use of
+-- OBJECT_ID to detect if the object exists and conditionally deletes
+-- existing objects only. The 2nd parameter to OBJECT_ID is the object
+-- type - P for procedure, V for view, U for table
+
+
+
+-- drop all procedures
+IF Object_ID ('dbo.InsertProduct', 'P') IS NOT NULL DROP PROCEDURE IF EXISTS dbo.InsertProduct;
+go
+
+IF Object_ID ('dbo.InsertPayment', 'P') IS NOT NULL DROP PROCEDURE IF EXISTS dbo.InsertPayment;
+go
+
+IF Object_ID ('dbo.InsertCustomer', 'P') IS NOT NULL DROP PROCEDURE IF EXISTS dbo.InsertCustomer;
+go
+
+-- drop all views
+IF OBJECT_ID ('dbo.CustomerPayment', 'V') IS NOT NULL DROP VIEW IF EXISTS dbo.CustomerPayment;
+go
+--DROP VIEW IF EXISTS dbo.CustomerPayment;
+go
+
+-- drop all tables in reverse order of their dependencies
+IF OBJECT_ID ('dbo.OrderDetail', 'U') IS NOT NULL DROP TABLE IF EXISTS dbo.OrderDetail;
+go
+
+IF OBJECT_ID ('dbo.CustomerOrder', 'U') IS NOT NULL DROP TABLE IF EXISTS dbo.CustomerOrder;
+go
+
+IF OBJECT_ID ('dbo.Employee', 'U') IS NOT NULL DROP TABLE IF EXISTS dbo.Employee;
+go
+
+IF OBJECT_ID ('dbo.Supplier', 'U') IS NOT NULL DROP TABLE IF EXISTS dbo.Supplier;
+go
+
+IF OBJECT_ID ('dbo.Product', 'U') IS NOT NULL DROP TABLE IF EXISTS dbo.Product;
+go
+
+IF OBJECT_ID ('dbo.Payment', 'U') IS NOT NULL DROP TABLE IF EXISTS dbo.Payment;
+go
+
+IF OBJECT_ID ('dbo.Customer', 'U') IS NOT NULL DROP TABLE IF EXISTS dbo.Customer;
+go
+
+-- create all tables in order of their dependencies
+
+CREATE TABLE dbo.Customer
+(
+	CustomerID int Not Null IDENTITY, 
+	FirstName varchar(50) NOT NULL,
+	LastName varchar(50) NOT NULL,
+	ShipAddress varchar(255) NOT NULL,
+	ShipCity varchar(30) NOT NULL,
+	ShipState varchar(30) NOT NULL, 
+	ShipPostal varchar(30) NOT NULL,
+	Email varchar(255) Null,
+	CreditCard varchar(255) Null,
+	CardExp int Null,
+	DogSize varchar(30) Null,
+	CONSTRAINT PK_Customer Primary Key (CustomerID),
+	CONSTRAINT U1_Customer Unique(LastName)
+);
+go
+
+CREATE TABLE dbo.Payment
+(
+	PaymentID int NOT Null IDENTITY,
+	PaymentType varchar(50) Not Null,
+	PaymentDate date Null,
+	CustomerID int NOT Null,
+	Allowed int Null,
+	CONSTRAINT PK_Payment Primary Key (PaymentID),
+	CONSTRAINT FK1_Payment FOREIGN KEY (CustomerID) references Customer(CustomerID)
+);
+go
+
+CREATE TABLE dbo.Product
+(
+	ProductID int NOT NUll IDENTITY,
+	ProductName varchar(50) NOT NULL,
+	ProductDescription varchar(255) NOT Null,
+	Fabric varchar(50) Null,
+	Color varchar(50) Null,
+	Size varchar(50) Null,
+	CONSTRAINT PK_Product Primary Key (ProductID),
+	CONSTRAINT U1_Product Unique(ProductName) 
+);
+go
+
+CREATE TABLE dbo.Supplier
+(
+	SupplierID int Not Null IDENTITY,
+	CompanyName varchar(50) Not Null,
+	ProductID int NOT Null,
+	SupplierAddress varchar(255) Null,
+	CONSTRAINT PK_Supplier Primary Key (SupplierID),
+	CONSTRAINT FK1_Supplier FOREIGN KEY (ProductID) references dbo.Product (ProductID)
+);
+go
+
+CREATE TABLE dbo.Employee
+(
+	EmployeeID int NOT NULL IDENTITY,
+	FirstName varchar(50) NOT NULL,
+	LastName varchar(50) NOT NULL,
+	Department varchar(50) NULL, 
+	DateHired date Null,
+	CONSTRAINT PK_Employee Primary Key (EmployeeID)
+);
+go
+
+CREATE TABLE dbo.CustomerOrder
+(
+	OrderID int Not Null IDENTITY,
+	CustomerID int Not Null,
+	PaymentID int Not Null,
+	OrderDate date Null,
+	ProductID int Not Null,
+	EmployeeID int Not Null,
+	CONSTRAINT PK_CustomerOrder Primary Key (OrderID),
+	CONSTRAINT FK1_CustomerOrder Foreign Key (CustomerID) references Customer(CustomerID),
+	CONSTRAINT FK2_CustomerOrder Foreign Key (PaymentID) references Payment(PaymentID),
+	CONSTRAINT FK3_CustomerOrder Foreign Key (EmployeeID) references Employee(EmployeeID),
+	CONSTRAINT FK4_CustomerOrder Foreign Key (ProductID) references Product(ProductID)
+);
+go
+
+CREATE TABLE dbo.OrderDetail
+(
+	OrderDetailID int Not Null IDENTITY,
+	ProductID int not Null,
+	Quantity int Null,
+	Discount int Null,
+	Total money Null,
+	Size varchar(20) Null,
+	Color varchar(20) Null,
+	Available int Null,
+	OrderID int Not Null,
+	ShipDate date Null,
+	CONSTRAINT PK_OrderDetail Primary Key (OrderDetailID),
+	CONSTRAINT FK_OrderDetailProduct Foreign Key (ProductID) references Product(ProductID),
+	CONSTRAINT FK_OrderDetailCustomer Foreign Key (OrderID) references CustomerOrder(OrderID)
+);
+go
+
+
+CREATE PROCEDURE dbo.InsertCustomer 
+	@FirstName varchar(50),
+	@LastName varchar(50)
+AS
+	INSERT dbo.Customer (FirstName, LastName) VALUES (@FirstName, @LastName);
+go
+
+CREATE PROCEDURE dbo.InsertPayment
+	@PaymentType varchar(50)
+AS
+	INSERT dbo.Payment(PaymentType) VALUES (@PaymentType);
+go
+
+
+CREATE PROCEDURE dbo.InsertProduct 
+	@ProductName varchar(50),
+	@ProductDescription varchar(255)
+AS
+	INSERT dbo.Product(ProductName, ProductDescription) VALUES (@ProductName, @ProductDescription);
+go
+
+
+
+-- insert records into tables
+INSERT dbo.Customer(FirstName, LastName, ShipAddress, ShipCity, ShipState, ShipPostal, DogSize, Email) 
+VALUES	('Sheev', 'Palpatine', '2324 Empire State', 'Los Angeles', 'CA', '90001', 'Large', 'sheeve.pal@gmail.com'),
+		('Qui','Jinn', '1371 Darth State', 'Los Angeles', 'CA', '90010','XLarge', 'jinn09@gmail.com'), 
+		('Obi', 'Kenobi', '917 Ocean Jedi', 'Los Alamitos', 'CA', '90721', 'Medium', 'obik23@gmail.com'),
+		('Mace', 'Windu', '3101 Blue Springs', 'Beverly Hills', 'CA', '90209','Large', 'windumace@gmail.com'),
+		('Maul', 'Darthomir', '8787 Sith Empire', 'Carlsbad', 'CA', '92008','XLarge', 'darthstar@gmail.com'),
+		('Chewy', 'Becca', '3012 Space Drive', 'Malibu', 'CA', '90263','Large', 'becca909@gmail.com');
+go
+
+INSERT dbo.Payment(PaymentType,PaymentDate, CustomerID) 
+VALUES ('VISA', '03/16/2021', (SELECT CUSTOMERID FROM dbo.Customer where LastName= 'Palpatine')),
+	   ('MasterCard', '03/17/2021', (SELECT CustomerID from dbo.Customer where LastName= 'Jinn')),
+	   ('VISA', '3/18/2021', (SELECT CustomerID from dbo.Customer where LastName= 'Kenobi')),
+	   ('Discover', '3/19/2021', (SELECT CustomerID from dbo.Customer where LastName= 'Windu')),
+	   ('MasterCard', '3/24/2021', (SELECT CustomerID from dbo.Customer where LastName= 'Darthomir')),
+	   ('American Express', '3/25/2021', (SELECT CustomerID from dbo.Customer where LastName= 'Becca'));
+go
+
+INSERT dbo.Product(ProductName, ProductDescription)
+VALUES	('Blue Mid Rim', 'Blue Microfiber robe with galaxy trim'),
+		('Green Maze', 'Green All Cotton robe with abstract trim'), 
+		('Orange Wild Space', 'Orange Microsuede robe with tie dye trim');
+go 
+
+INSERT dbo.Supplier(CompanyName, ProductID)
+VALUES ('Microfiber LLC',(SELECT ProductID from dbo.Product where ProductName= 'Blue Mid Rim')),
+	   ('AllCotton',(SELECT ProductID from dbo.Product where ProductName= 'Green Maze')), 
+	   ('FabricsRUs', (SELECT ProductID from dbo.Product where ProductName= 'Orange Wild Space'))
+go
+
+INSERT dbo.Employee(FirstName, LastName)
+VALUES ('Boba','Fett'),
+	   ('Cara', 'Dune'), 
+	   ('Fennec', 'Shand');
+go
+
+INSERT dbo.CustomerOrder(CustomerID, PaymentID, OrderDate, ProductID, EmployeeID)
+VALUES
+  (1, 1, '03/16/2021',1,1),
+  (2, 2, '03/17/2021',2,1),
+  (3, 3, '03/18/2021',2,2),
+  (4, 4, '03/19/2021',3,2),
+  (5, 5, '03/24/2021',1,3),
+  (6, 6, '03/25/2021',1,1);
+go
+
+
+INSERT dbo.OrderDetail(ShipDate, Total, Quantity, ProductID, OrderID)
+VALUES ('03/17/2021', '$80', 2, 1, (SELECT OrderID from dbo.CustomerOrder where OrderID=1 )), 
+	   ('03/18/2021', '$56',1, 2, (SELECT OrderID from dbo.CustomerOrder where OrderID=2)),
+	   ('03/19/2021', '$35', 1, 3, (SELECT OrderID from dbo.CustomerOrder where OrderID=3)),
+	   ('03/20/2021', '$120', 3, 1, (SELECT OrderID from dbo.CustomerOrder where OrderID=4)),
+	   ('03/25/2021', '$112', 2, 2, (SELECT OrderID from dbo.CustomerOrder where OrderID=5)),
+	   ('03/26/2021', '$40', 1, 1, (SELECT OrderID from dbo.CustomerOrder where OrderID=6));
+go
+
+
+
+
+
+-- Pull results from the tables
+SELECT	*
+FROM	dbo.Customer;
+go
+
+SELECT	*
+FROM	dbo.Payment;
+go
+
+SELECT	*
+FROM	dbo.Product;
+go
+
+SELECT * 
+FROM	dbo.CustomerOrder
+go
+
+--Create a view with Customer and Payment
+
+Create VIEW dbo.CustomerPayment 
+AS
+SELECT PT.PaymentType, CUST.Email, CUST.LastName, PRD.ProductName, PRD.ProductDescription
+	   FROM dbo.Customer as CUST
+	   INNER JOIN dbo.Payment AS PT ON PT.CustomerID = CUST.CustomerID
+	   INNER JOIN dbo.CustomerOrder AS CO ON CO.PaymentID= PT.PaymentID
+	   INNER JOIN dbo.Product AS PRD ON PRD.ProductID = CO.ProductID
+	   ;
+go
+
+--Check the CustomerPayment View 
+SELECT * from dbo.CustomerPayment
+
